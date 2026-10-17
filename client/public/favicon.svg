@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bubbleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Squircle Base with Rich Cobalt Gradient -->
+  <rect width="32" height="32" rx="9" fill="url(#bubbleGrad)" />
+  
+  <!-- Crisp Solid White Speech Bubble -->
+  <path d="M8 10.5C8 8.57 9.57 7 11.5 7h9C22.43 7 24 8.57 24 10.5v6c0 1.93-1.57 3.5-3.5 3.5H13l-4 3.5v-3.5H11.5C9.57 20 8 18.43 8 16.5v-6z" fill="#FFFFFF" />
+  
+  <!-- Real-Time Activity Signal Dots inside the bubble -->
+  <circle cx="12.5" cy="13.5" r="1.3" fill="#2563EB" />
+  <circle cx="16" cy="13.5" r="1.3" fill="#2563EB" />
+  <circle cx="19.5" cy="13.5" r="1.3" fill="#2563EB" />
+  
+  <!-- Vibrant Emerald Real-Time Status Indicator Badge -->
+  <circle cx="24.5" cy="7.5" r="3.2" fill="#10B981" stroke="#FFFFFF" stroke-width="1.2" />
+</svg>

@@ -1,0 +1,18 @@
+{
+  "name": "realtime-chat-server",
+  "version": "1.0.0",
+  "description": "Express and WebSocket server for real-time chat lab",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "dev": "node --watch --env-file-if-exists=.env src/index.js",
+    "test": "node --env-file-if-exists=.env test/server.test.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "pg": "^8.23.1",
+    "ws": "^8.18.0"
+  }
+}
