@@ -18,10 +18,16 @@ npm run dev
 - **Backend API**: [http://localhost:3001/api](http://localhost:3001/api)
 - **WebSocket Gateway**: `ws://localhost:3001`
 
-### 2. Run Automated Protocol Verification Tests
+### 2. Run Automated Protocol & Security Verification Tests
 ```bash
 npm run test:server
 ```
+Runs the full 10-point test suite: OWASP Headers, Memory Diagnostics, Dynamic CAPTCHA, XSS Sanitization, Express 404, Rate Limiting, Forensic Audit Trail, Admin SOC Telemetry & Crypto, Private Room Password Gates, and File & Media Sharing.
+
+### 3. WhatsApp-Style File & Media Sharing
+- **Attachments**: Click the `📎` paperclip or drag-and-drop any photo, video, audio note, PDF, or document onto the screen.
+- **Media Previews & Lightbox**: Interactive zoom Lightbox for images, built-in HTML5 video and audio players, file size badges, and 1-click download actions.
+- **Delivery Sync**: Synchronized WhatsApp delivery ticks (`✓`, `✓✓`, `✓✓ Blue`) for all file transmissions.
 
 ---
 

@@ -124,6 +124,8 @@ export function AdminPortal({ onExit }) {
         return <span className="px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-500/30 text-sky-400 font-mono text-[10px] font-bold">DELIVERED</span>;
       case 'MESSAGE_READ':
         return <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 font-mono text-[10px] font-bold">READ</span>;
+      case 'FILE_UPLOADED':
+        return <span className="px-2 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 font-mono text-[10px] font-bold">FILE_UPLOADED</span>;
       default:
         return <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono text-[10px]">{eventType}</span>;
     }

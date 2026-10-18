@@ -99,8 +99,8 @@ export class WebSocketClient {
     return true;
   }
 
-  sendChatMessage(text) {
-    return this.send('chat_message', { text });
+  sendChatMessage(text, file = null) {
+    return this.send('chat_message', { text, file });
   }
 
   sendTyping(isTyping) {

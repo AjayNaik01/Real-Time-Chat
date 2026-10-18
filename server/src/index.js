@@ -4,6 +4,8 @@ try {
 } catch (e) {}
 
 import http from 'http';
+import path from 'path';
+import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import { createRoom, getRoom, addMessage, getMessages, generateRoomId, markDelivered, markRead, verifyRoomPassword } from './store.js';
@@ -12,6 +14,7 @@ import { securityHeaders, sanitizeMessageText, sanitizeNickname, validateRoomId 
 import { rateLimitMiddleware } from './rateLimiter.js';
 import { generateCaptcha, verifyCaptcha } from './captcha.js';
 import { logAuditEvent, AUDIT_EVENTS } from './auditLogger.js';
+import { uploadMiddleware, getFileCategory, UPLOADS_DIR } from './uploadHelper.js';
 import {
   adminAuthMiddleware,
   handleAdminLogin,
@@ -327,7 +330,7 @@ app.get('/api/rooms/:roomId/messages', (req, res) => {
  */
 app.post('/api/rooms/:roomId/messages', rateLimitMiddleware('messages'), (req, res) => {
   const { roomId } = req.params;
-  const { sender, text, source = 'HTTP', password } = req.body;
+  const { sender, text, source = 'HTTP', password, file } = req.body || {};
 
   const room = getRoom(roomId);
   if (!room) {
@@ -346,17 +349,18 @@ app.post('/api/rooms/:roomId/messages', rateLimitMiddleware('messages'), (req, r
     }
   }
 
-  if (!text || !text.trim()) {
-    return res.status(400).json({ success: false, error: 'Message text is required' });
+  if ((!text || !text.trim()) && !file) {
+    return res.status(400).json({ success: false, error: 'Message text or file attachment is required' });
   }
 
-  const sanitizedText = sanitizeMessageText(text);
+  const sanitizedText = text ? sanitizeMessageText(text) : '';
   const cleanSender = sanitizeNickname(sender);
 
   const message = addMessage(roomId, {
     sender: cleanSender,
     text: sanitizedText,
     source,
+    file,
   });
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1';
@@ -373,6 +377,8 @@ app.post('/api/rooms/:roomId/messages', rateLimitMiddleware('messages'), (req, r
       source,
       cipherSnippet: message.encrypted?.wireCipher?.substring(0, 36) + '...',
       fingerprint: message.encrypted?.fingerprint,
+      hasFile: Boolean(message.file),
+      fileName: message.file?.name,
     },
   });
 
@@ -386,6 +392,106 @@ app.post('/api/rooms/:roomId/messages', rateLimitMiddleware('messages'), (req, r
     success: true,
     message,
   });
+});
+
+/**
+ * Upload a media file or document (Images, Videos, Audio, PDFs, Docs)
+ * POST /api/rooms/:roomId/upload
+ */
+app.post('/api/rooms/:roomId/upload', (req, res) => {
+  uploadMiddleware.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        error: err.message || 'File upload failed',
+        code: 'ERR_UPLOAD_FAILED',
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+        code: 'ERR_NO_FILE',
+      });
+    }
+
+    const { roomId } = req.params;
+    const room = getRoom(roomId);
+    if (!room) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+      return res.status(404).json({ success: false, error: 'Room Not Found', code: 'ERR_ROOM_NOT_FOUND' });
+    }
+
+    // Verify private room password
+    if (room.isPrivate) {
+      const password = req.headers['x-room-password'] || req.body.password;
+      if (!verifyRoomPassword(room, password)) {
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+        return res.status(401).json({
+          success: false,
+          error: 'Password required to upload files in this private room',
+          code: 'ERR_ROOM_PASSWORD_REQUIRED',
+        });
+      }
+    }
+
+    const fileCategory = getFileCategory(req.file.mimetype, req.file.originalname);
+    const fileData = {
+      url: `/api/files/${req.file.filename}`,
+      name: req.file.originalname,
+      size: req.file.size,
+      mimeType: req.file.mimetype,
+      type: fileCategory,
+    };
+
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || 'Unknown';
+
+    logAuditEvent(AUDIT_EVENTS.FILE_UPLOADED, {
+      ip,
+      user: req.body?.user || 'Anonymous',
+      userAgent,
+      roomId: room.id,
+      metadata: {
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        category: fileCategory,
+      },
+    });
+
+    res.json({
+      success: true,
+      file: fileData,
+    });
+  });
+});
+
+/**
+ * Serve an uploaded file (with preview or download disposition)
+ * GET /api/files/:filename
+ */
+app.get('/api/files/:filename', (req, res) => {
+  const safeFilename = path.basename(req.params.filename);
+  const filePath = path.join(UPLOADS_DIR, safeFilename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      error: 'File not found',
+      code: 'ERR_FILE_NOT_FOUND',
+    });
+  }
+
+  const download = req.query.download === 'true';
+  const customName = req.query.name ? path.basename(String(req.query.name)) : safeFilename;
+
+  if (download) {
+    res.download(filePath, customName);
+  } else {
+    res.sendFile(filePath);
+  }
 });
 
 /**

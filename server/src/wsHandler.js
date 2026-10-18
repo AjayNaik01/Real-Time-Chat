@@ -248,14 +248,15 @@ function handleClientMessage(ws, payload) {
     }
 
     case 'chat_message': {
-      if (!meta.roomId || !text) return;
-      const sanitizedText = sanitizeMessageText(text);
-      if (!sanitizedText) return;
+      if (!meta.roomId || (!text && !payload.file)) return;
+      const sanitizedText = text ? sanitizeMessageText(text) : '';
+      if (!sanitizedText && !payload.file) return;
 
       const savedMsg = addMessage(meta.roomId, {
         sender: meta.user || sanitizeNickname(user),
         text: sanitizedText,
         source: 'WEBSOCKET',
+        file: payload.file || null,
       });
 
       logAuditEvent(AUDIT_EVENTS.MESSAGE_SENT, {
@@ -269,6 +270,8 @@ function handleClientMessage(ws, payload) {
           source: 'WEBSOCKET',
           cipherSnippet: savedMsg.encrypted?.wireCipher?.substring(0, 36) + '...',
           fingerprint: savedMsg.encrypted?.fingerprint,
+          hasFile: Boolean(savedMsg.file),
+          fileName: savedMsg.file?.name,
         },
       });
 

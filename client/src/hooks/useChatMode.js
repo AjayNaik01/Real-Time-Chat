@@ -135,15 +135,18 @@ export function useChatMode(roomId, user, roomPassword = '') {
   );
 
   /**
-   * Post a message (behavior depends on active mode)
+   * Post a message (behavior depends on active mode, supports optional file attachments)
    */
   const sendMessage = useCallback(
-    async (text) => {
-      if (!text || !text.trim() || !roomId) return;
+    async (text, file = null) => {
+      if ((!text || !text.trim()) && !file) return;
+      if (!roomId) return;
+
+      const trimmedText = text ? text.trim() : '';
 
       if (mode === PROTOCOL_MODES.WEBSOCKET && wsClientRef.current) {
         // Send via WebSocket frame
-        const sent = wsClientRef.current.sendChatMessage(text.trim());
+        const sent = wsClientRef.current.sendChatMessage(trimmedText, file);
         if (sent) {
           setMetrics((prev) => ({ ...prev, lastAction: 'WS Send Message' }));
         }
@@ -153,11 +156,12 @@ export function useChatMode(roomId, user, roomPassword = '') {
         try {
           const result = await postMessageApi(roomId, {
             sender: user,
-            text: text.trim(),
+            text: trimmedText,
             source,
             password: roomPassword,
+            file,
           });
-          if (result.ok && result.data.message) {
+          if (result.ok && result.data?.message) {
             recordHttpMetric(result, `POST /messages (${source})`);
             // In manual mode, we also update our local message list immediately for good UX
             setMessages((prev) => [...prev, result.data.message]);

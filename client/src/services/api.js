@@ -294,3 +294,73 @@ export async function adminDecryptApi(token, payload) {
   return result;
 }
 
+/**
+ * Resolves a server-relative file path to the absolute backend URL
+ */
+export function getFileUrl(urlPath) {
+  if (!urlPath) return '';
+  if (urlPath.startsWith('http://') || urlPath.startsWith('https://')) return urlPath;
+  const backendOrigin = BASE_URL.replace(/\/api\/?$/, '');
+  return `${backendOrigin}${urlPath.startsWith('/') ? '' : '/'}${urlPath}`;
+}
+
+/**
+ * Upload a media file or document with upload progress tracking
+ */
+export function uploadFileApi(roomId, file, password = '', onProgress = null) {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    const url = `${BASE_URL}/rooms/${encodeURIComponent(roomId)}/upload`;
+
+    xhr.open('POST', url, true);
+    if (password) {
+      xhr.setRequestHeader('x-room-password', password);
+    }
+
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      let data = null;
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch (e) {
+        data = { error: xhr.statusText || 'Upload failed' };
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300 && data?.success) {
+        resolve({ ok: true, data, status: xhr.status });
+      } else {
+        resolve({
+          ok: false,
+          error: data?.error || 'File upload failed',
+          code: data?.code,
+          status: xhr.status,
+        });
+      }
+    };
+
+    xhr.onerror = () => {
+      resolve({
+        ok: false,
+        error: 'Network error during upload',
+        status: 0,
+      });
+    };
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (password) {
+      formData.append('password', password);
+    }
+
+    xhr.send(formData);
+  });
+}
+

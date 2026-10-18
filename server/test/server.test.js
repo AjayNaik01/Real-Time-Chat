@@ -337,7 +337,64 @@ async function runTests() {
 
     console.log('✅ Test 9 Passed: Public vs. Private Room Security, Password hashing, constant-time validation, 401 message gates & WebSocket join rejection verified');
 
-    console.log('\n🎉 ALL 9 PRODUCTION SECURITY, COMPLIANCE, ADMIN SOC, CRYPTO, PRIVATE ROOMS & AUDIT TESTS PASSED!\n');
+    // Test 10: File Sharing (Upload, Category Detection, Security Blocking & Serving)
+    console.log('📎 Test 10: Verifying File Sharing, Security Filtering & Retrieval...');
+
+    // 10a: Upload a valid document to public room
+    const formData = new FormData();
+    const testBlob = new Blob(['Hello Real-Time Chat File Sharing!'], { type: 'text/plain' });
+    formData.append('file', testBlob, 'test-document.txt');
+
+    const uploadRes = await fetch(`${BASE_URL}/api/rooms/PUB-ROOM-TEST/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadData.success || !uploadData.file?.url || uploadData.file.type !== 'document') {
+      throw new Error(`File upload failed or returned invalid metadata: ${JSON.stringify(uploadData)}`);
+    }
+
+    // 10b: Fetch the uploaded file from the server
+    const fileFetchRes = await fetch(`${BASE_URL}${uploadData.file.url}`);
+    if (fileFetchRes.status !== 200) {
+      throw new Error(`Failed to retrieve uploaded file: status ${fileFetchRes.status}`);
+    }
+    const fileContent = await fileFetchRes.text();
+    if (fileContent !== 'Hello Real-Time Chat File Sharing!') {
+      throw new Error('Retrieved file content does not match uploaded content');
+    }
+
+    // 10c: Verify security blocking of dangerous executable files
+    const badFormData = new FormData();
+    const badBlob = new Blob(['malicious payload'], { type: 'application/x-msdownload' });
+    badFormData.append('file', badBlob, 'trojan.exe');
+
+    const badUploadRes = await fetch(`${BASE_URL}/api/rooms/PUB-ROOM-TEST/upload`, {
+      method: 'POST',
+      body: badFormData,
+    });
+    if (badUploadRes.status === 200) {
+      throw new Error('Security flaw: Server allowed uploading blocked .exe executable file');
+    }
+
+    // 10d: Post chat message with file attachment
+    const msgWithFileRes = await fetch(`${BASE_URL}/api/rooms/PUB-ROOM-TEST/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender: 'Ajay',
+        text: 'Please review this attachment',
+        file: uploadData.file,
+      }),
+    });
+    const msgWithFileData = await msgWithFileRes.json();
+    if (!msgWithFileData.success || !msgWithFileData.message?.file?.url) {
+      throw new Error('Failed to post message with file attachment');
+    }
+
+    console.log('✅ Test 10 Passed: File upload, category detection, security extension blocking, serving & message attachment verified');
+
+    console.log('\n🎉 ALL 10 PRODUCTION SECURITY, COMPLIANCE, ADMIN SOC, CRYPTO, PRIVATE ROOMS, AUDIT & FILE SHARING TESTS PASSED!\n');
   } finally {
     cleanup();
   }

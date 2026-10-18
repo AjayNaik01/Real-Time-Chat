@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   X,
+  Paperclip,
 } from 'lucide-react';
 import { useChatMode, PROTOCOL_MODES } from '../hooks/useChatMode.js';
 import { useTyping } from '../hooks/useTyping.js';
@@ -34,6 +35,32 @@ export function ChatRoom({ roomId, user, roomPassword = '', isPrivate = false, o
   const [showSwitchPassword, setShowSwitchPassword] = useState(false);
   const [switchError, setSwitchError] = useState('');
   const [isSwitching, setIsSwitching] = useState(false);
+
+  // Staged File & Drag Drop State
+  const [stagedFile, setStagedFile] = useState(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setStagedFile(file);
+    }
+  };
 
   // Developer Mode State: Defaults to false (clean Google Chat view)
   const [isDevMode, setIsDevMode] = useState(() => {
@@ -175,7 +202,25 @@ export function ChatRoom({ roomId, user, roomPassword = '', isPrivate = false, o
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-google-bg text-slate-100 overflow-hidden select-text">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="flex flex-col h-[100dvh] bg-google-bg text-slate-100 overflow-hidden select-text relative"
+    >
+      {/* Drag & Drop Visual Backdrop Overlay */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 z-50 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-400 flex flex-col items-center justify-center p-6 pointer-events-none animate-fade-in">
+          <div className="p-4 bg-slate-900/90 rounded-2xl border border-blue-400/30 flex flex-col items-center gap-3 shadow-2xl">
+            <Paperclip className="w-10 h-10 text-blue-400 animate-bounce" />
+            <div className="text-center">
+              <p className="text-base font-semibold text-white">Drop file to attach</p>
+              <p className="text-xs text-slate-400 mt-0.5">Images, videos, audio, PDF & documents up to 15MB</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Header */}
       <header className="bg-slate-950/95 border-b border-white/[0.06] px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-sm z-10 shrink-0 backdrop-blur">
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
@@ -319,7 +364,11 @@ export function ChatRoom({ roomId, user, roomPassword = '', isPrivate = false, o
         onSendMessage={sendMessage}
         onTypingKeystroke={handleTypingKeystroke}
         onMessageSent={handleMessageSent}
+        roomId={roomId}
+        roomPassword={roomPassword}
         disabled={false}
+        stagedFile={stagedFile}
+        onClearStagedFile={() => setStagedFile(null)}
       />
 
       {/* Under The Hood Network Inspector: Visible ONLY in Developer Mode */}

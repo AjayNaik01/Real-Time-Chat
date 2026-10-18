@@ -8,6 +8,9 @@ dist/
 dist-ssr/
 build/
 *.local
+uploads/
+server/uploads/*
+!server/uploads/.gitkeep
 
 # Environment Variables
 .env

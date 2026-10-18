@@ -289,10 +289,45 @@ The application supports both friction-free public rooms and password-locked pri
 * **Forensic Audit Logging**: Failed private room unlock attempts are logged as `SECURITY_WARNING` audit events for SOC monitoring.
 
 ### 11.3 Automated Verification
-Run the 9-part automated security test suite to verify password hashing, access gating, and public room creation:
+Run the automated security test suite to verify password hashing, access gating, and public room creation:
 ```bash
 npm run test:server
 # or
+npm test --prefix server
+```
+
+---
+
+## 12. WhatsApp-Style File & Media Sharing System
+
+The application features full WhatsApp-grade file and media sharing for photos, videos, voice/audio notes, documents, and PDFs.
+
+### 12.1 Capabilities & User Experience
+* **Supported File Types**:
+  * **Images** (`image/*`: PNG, JPEG, GIF, WebP, SVG): Rendered as rich in-stream cards with click-to-zoom Lightbox modal and instant download.
+  * **Videos** (`video/*`: MP4, WebM, OGG): Rendered with native HTML5 `<video controls>` player.
+  * **Audio** (`audio/*`: MP3, WAV, OGG, AAC): Rendered with HTML5 `<audio controls>` player bar.
+  * **Documents & PDFs** (`application/pdf`, `.docx`, `.xlsx`, `.zip`, `.txt`): Rendered as sleek document cards with filename, file size chip, and 1-click download button.
+* **Paperclip Attachment & Drag-and-Drop**:
+  * Paperclip icon (`📎`) triggers native file selector.
+  * Full-window drag-and-drop overlay automatically stages dropped files.
+  * Staged file preview bar shows thumbnail, category badge, and file size chip with cancel (`✕`) action.
+* **Upload Progress & Delivery Ticks**:
+  * Real-time XHR upload progress indicator (`10% -> 100%`).
+  * Combined caption support (text message + attached file sent together).
+  * Seamless integration with WhatsApp-style delivery ticks (`✓`, `✓✓`, `✓✓ Blue`).
+
+### 12.2 Security Architecture & Safeguards
+* **File Size Cap**: Strict 15 MB limit enforced via `multer` on the backend and validated on the client.
+* **Executable Blacklist**: Dangerous extensions (`.exe`, `.bat`, `.cmd`, `.sh`, `.bin`, `.msi`, `.apk`, `.com`, `.scr`) are rejected with `HTTP 400 Bad Request`.
+* **Private Room Authentication**: Uploads to private rooms require password validation (`x-room-password` header or `password` body field); unauthorized uploads return `HTTP 401 Unauthorized`.
+* **Sanitized Filenames & Unique Collision-Free Storage**: Files are saved with UUID-suffixed timestamps in `server/uploads/` while retaining safe original extensions.
+* **Forensic Audit Logging**: Successful uploads generate `FILE_UPLOADED` audit events in the Admin SOC log.
+* **Cross-Origin Absolute URL Resolution**: `getFileUrl` automatically resolves files to the backend host (e.g., Render in production, `localhost:3001` in dev), preventing broken relative paths on CDN-hosted SPAs (Vercel).
+
+### 12.3 Automated Test Suite
+Run the 10-part automated test suite (including Test 10: File Sharing, Security Filtering & Retrieval):
+```bash
 npm test --prefix server
 ```
 

@@ -78,7 +78,7 @@ export function getRoom(roomId) {
 /**
  * Add a message to a room's history
  */
-export function addMessage(roomId, { sender, text, source = 'HTTP' }) {
+export function addMessage(roomId, { sender, text, source = 'HTTP', file = null }) {
   let room = getRoom(roomId);
   if (!room) {
     room = createRoom(roomId);
@@ -90,13 +90,20 @@ export function addMessage(roomId, { sender, text, source = 'HTTP' }) {
   }
   room.lastActivityAt = Date.now();
 
-  const encrypted = encryptMessage(text || '');
+  const encrypted = encryptMessage(text || (file ? `[Attachment: ${file.name}]` : ''));
 
   const message = {
     id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     roomId: room.id,
     sender: sender || 'Anonymous',
     text: text || '',
+    file: file && file.url ? {
+      url: file.url,
+      name: file.name,
+      size: Number(file.size) || 0,
+      mimeType: file.mimeType || 'application/octet-stream',
+      type: file.type || 'document',
+    } : null,
     encrypted,
     source, // 'HTTP' | 'POLLING' | 'WEBSOCKET'
     timestamp: Date.now(),

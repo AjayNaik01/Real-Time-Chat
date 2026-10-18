@@ -389,7 +389,24 @@ NODE_ENV=production
 | **High-End Node** | 8 GB – 16 GB RAM, 4–8 vCPUs | **50,000 – 80,000+ users** | **10,000+ msgs/sec** |
 
 ### 11.2 Future Roadmap
+* [x] **Phase 1.5 — WhatsApp-Style File & Media Sharing**: Images (Lightbox zoom), Videos, Audio, PDFs & Documents with download actions and rate limit safeguards.
 * [ ] **Phase 2 — Multi-Node Horizontal Clustering**: Integrate Redis Pub/Sub adapter to allow horizontal scaling of WebSocket servers across multiple container instances.
 * [ ] **Phase 3 — Persistent Storage Tier**: Connect PostgreSQL or Supabase for persistent room archives and user authentication.
 * [ ] **Phase 4 — End-to-End Encryption (E2EE)**: Implement client-side Web Crypto API (AES-GCM 256) for zero-knowledge private messaging.
 * [ ] **Phase 5 — WebRTC Audio/Video**: Leverage existing room presence signaling to support 1-on-1 peer voice and video calls.
+
+---
+
+## 12. File & Media Sharing Architecture
+
+### 12.1 Functional Overview
+* **Media Formats**: Images (PNG, JPG, WebP, GIF), playable HTML5 video (MP4, WebM), inline audio players (MP3, WAV, AAC), and downloadable documents (PDF, DOCX, XLSX, ZIP).
+* **Delivery & Receipt Sync**: File messages carry identical WhatsApp tick lifecycle (`✓` Sent, `✓✓` Delivered, `✓✓ Blue` Seen) as text messages.
+* **Image Lightbox**: High-res click-to-zoom modal with backdrop blur, keyboard ESC dismissal, and direct download CTA.
+* **Drag-and-Drop Surface**: Intuitive full-viewport dropzone with animated boundary highlight and file staging tray.
+
+### 12.2 Security & Storage Model
+* **Storage Location**: `server/uploads/` on local/container storage.
+* **Size Enforcement**: Strict 15 MB limit per file payload via `multer`.
+* **Execution Prevention**: Executable extensions blocked (`.exe`, `.bat`, `.sh`, `.bin`, `.msi`, `.apk`).
+* **Origin Agnostic**: Handled seamlessly between development (`localhost:3001`) and production deployments (Vercel CDN + Render container).
